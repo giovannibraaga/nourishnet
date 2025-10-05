@@ -63,4 +63,10 @@ public class GlobalExceptionHandler {
         while (x.getCause() != null) x = x.getCause();
         return x.getMessage();
     }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleState(IllegalStateException ex, HttpServletRequest req) {
+        return ResponseEntity.status(409).body(new ApiError(
+                req.getRequestURI(), 409, "Conflict", ex.getMessage(), java.time.OffsetDateTime.now(), null));
+    }
 }

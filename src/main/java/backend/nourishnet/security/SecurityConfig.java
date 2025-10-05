@@ -40,4 +40,11 @@ public class SecurityConfig {
     FirebaseJwtAuthConverter firebaseJwtAuthConverter(UserAccountService userAccountService) {
         return new FirebaseJwtAuthConverter(userAccountService);
     }
+
+    @Bean
+    public org.springframework.boot.web.servlet.FilterRegistrationBean<backend.nourishnet.security.RequestMdcFilter> mdcFilter() {
+        var bean = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(new backend.nourishnet.security.RequestMdcFilter());
+        bean.setOrder(org.springframework.core.Ordered.HIGHEST_PRECEDENCE);
+        return bean;
+    }
 }
