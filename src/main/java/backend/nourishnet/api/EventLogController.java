@@ -1,9 +1,9 @@
 package backend.nourishnet.api;
 
 import backend.nourishnet.repository.EventLogRepository;
+import backend.nourishnet.service.EventLogService;
 import backend.nourishnet.support.PageMeta;
 import backend.nourishnet.support.PageResponse;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/donations")
 public class EventLogController {
-    private final EventLogRepository repo;
+    private final EventLogService service;
 
-    public EventLogController(EventLogRepository repo) {
-        this.repo = repo;
+    public EventLogController(EventLogService service) {
+        this.service = service;
     }
 
     @GetMapping("/{id}/events")
@@ -24,19 +24,15 @@ public class EventLogController {
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
 
-        var pageable = (page == null || size == null)
-                ? PageRequest.of(0, Integer.MAX_VALUE)
-                : PageRequest.of(Math.max(page, 0), Math.max(size, 1));
+        var content = service.pageByDonation(donationId, page, size);
+        var total = service.countByDonation(donationId);
 
-        var pg = repo.pageByDonation(donationId, pageable);
-        var content = pg.getContent();
-        var total = pg.getTotalElements();
-        var sz = (size == null) ? content.size() : Math.max(size, 1);
-        var current = (page == null) ? 0 : Math.max(page, 0);
-        var totalPages = (size == null) ? 1 : pg.getTotalPages();
-        var offset = (size == null) ? 0 : current * sz;
+        int p = (page == null) ? 0 : Math.max(page, 0);
+        int s = (size == null) ? content.size() : Math.max(size, 1);
+        int totalPages = (page == null || size == null) ? 1 : (int) Math.ceil(total / (double) s);
+        int offset = (page == null || size == null) ? 0 : p * s;
 
-        var meta = new PageMeta(current, sz, offset, "event_time", "desc", total, totalPages);
+        var meta = new PageMeta(p, s, offset, "event_time", "desc", total, totalPages);
         return ResponseEntity.ok(new PageResponse<>(meta, content));
     }
 }
