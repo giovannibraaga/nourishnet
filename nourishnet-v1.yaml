@@ -1,0 +1,725 @@
+openapi: 3.1.0
+info:
+  title: NourishNet API
+  description: API para gestão e distribuição de doações alimentares.
+  version: 1.0.0
+servers:
+  - url: 'https://nourishnet.dev'
+paths:
+  /auth/signup:
+    post:
+      summary: Cadastro de usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: Usuário cadastrado com sucesso
+  /auth/login:
+    post:
+      summary: Login de usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login realizado com sucesso
+  /me:
+    get:
+      summary: Dados do usuário autenticado
+      responses:
+        '200':
+          description: Dados do usuário
+    put:
+      summary: Atualização dos dados do usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeUpdateRequest'
+      responses:
+        '200':
+          description: Dados atualizados
+  /users:
+    post:
+      summary: Criação de usuário (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Usuário criado
+  /users/{id}:
+    get:
+      summary: Consulta de usuário por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dados do usuário
+    put:
+      summary: Atualização de usuário por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Usuário atualizado
+  /donations:
+    post:
+      summary: Criar doação
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DonationRequest'
+      responses:
+        '201':
+          description: Doação criada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DonationResponse'
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Listar doações
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Página da listagem
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Quantidade máxima de itens por página
+        - name: upset
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Offset para paginação
+      responses:
+        '200':
+          description: Lista de doações
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DonationResponse'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  sort:
+                    type: string
+                  upset:
+                    type: integer
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '400':
+          description: Parâmetros inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /donations/{id}:
+    get:
+      summary: Detalhes de uma doação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalhes da doação
+    put:
+      summary: Atualizar doação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DonationUpdateRequest'
+      responses:
+        '200':
+          description: Doação atualizada
+  /deliveries:
+    post:
+      summary: Registrar entrega
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeliveryRequest'
+      responses:
+        '201':
+          description: Entrega registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryResponse'
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: Listar entregas
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Página da listagem
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Quantidade máxima de itens por página
+        - name: upset
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Offset para paginação
+      responses:
+        '200':
+          description: Lista de entregas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeliveryResponse'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  sort:
+                    type: string
+                  upset:
+                    type: integer
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '400':
+          description: Parâmetros inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /deliveries/{id}:
+    get:
+      summary: Detalhes da entrega
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalhes da entrega
+  /deliveries/{id}/proof:
+    put:
+      summary: Enviar comprovante de entrega
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProofRequest'
+      responses:
+        '200':
+          description: Comprovante enviado
+  /alerts:
+    get:
+      summary: Listar alertas
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Página da listagem
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Quantidade máxima de itens por página
+        - name: upset
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Offset para paginação
+      responses:
+        '200':
+          description: Lista de alertas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AlertResponse'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  sort:
+                    type: string
+                  upset:
+                    type: integer
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '400':
+          description: Parâmetros inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /matches/{id}/accept:
+    post:
+      summary: Aceitar match de doação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptRequest'
+      responses:
+        '200':
+          description: Match aceito
+  /matches:
+    get:
+      summary: Listar matches
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Página da listagem
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Campo para ordenação
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Quantidade máxima de itens por página
+        - name: upset
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Offset para paginação
+      responses:
+        '200':
+          description: Lista de matches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MatchResponse'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  sort:
+                    type: string
+                  upset:
+                    type: integer
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '400':
+          description: Parâmetros inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /feed:
+    get:
+      summary: Feed de doações disponíveis
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Página da listagem
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Campo para ordenação
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Quantidade máxima de itens por página
+        - name: upset
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Offset para paginação
+      responses:
+        '200':
+          description: Feed de doações
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DonationResponse'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  sort:
+                    type: string
+                  upset:
+                    type: integer
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '400':
+          description: Parâmetros inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /admin/msg:
+    get:
+      summary: Mensagem administrativa
+      responses:
+        '200':
+          description: Mensagem
+  /event-logs:
+    get:
+      summary: Listar logs de eventos
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Página da listagem
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+          description: Tamanho da página
+      responses:
+        '200':
+          description: Lista de logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EventLogResponse'
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '400':
+          description: Parâmetros inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    SignupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    MeUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+    CreateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+    DonationRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: integer
+        expirationDate:
+          type: string
+          format: date
+    DonationUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: integer
+        expirationDate:
+          type: string
+          format: date
+    DeliveryRequest:
+      type: object
+      properties:
+        donationId:
+          type: string
+        receiverId:
+          type: string
+        deliveryDate:
+          type: string
+          format: date-time
+    ProofRequest:
+      type: object
+      properties:
+        proofUrl:
+          type: string
+    AcceptRequest:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+    DonationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: integer
+        expirationDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+    DeliveryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        donationId:
+          type: string
+        receiverId:
+          type: string
+        deliveryDate:
+          type: string
+          format: date-time
+        proofUrl:
+          type: string
+    AlertResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    EventLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        event:
+          type: string
+        details:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+    MatchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        donationId:
+          type: string
+        receiverId:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
