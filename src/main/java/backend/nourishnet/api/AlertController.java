@@ -18,26 +18,34 @@ public class AlertController {
 
     private static final Logger log = LoggerFactory.getLogger(AlertController.class);
     private final AlertService service;
-    public AlertController(AlertService service){ this.service = service; }
+
+    public AlertController(AlertService service) {
+        this.service = service;
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','DONATOR','ONG')")
-    public ResponseEntity<PageResponse<Alert>> list(
-            @RequestParam(required=false) String status,
-            @RequestParam(required=false) String severity,
-            @RequestParam(required=false) Long donationId,
-            @RequestParam(required=false) Integer page,
-            @RequestParam(required=false) Integer size,
-            @RequestParam(required=false) String sort,
-            @RequestParam(required=false) String order) {
+    public ResponseEntity<PageResponse<Alert>> search(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String severity,
+            @RequestParam(required = false) Long donationId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String order
+    ) {
+        List<Alert> content = service.search(status, severity, donationId, page, size, sort, order);
+        long total = service.count(status, severity, donationId);
 
-        List<Alert> content = service.search(status,severity,donationId,page,size,sort,order);
-        long total = (page==null||size==null)? content.size() : service.count(status,severity,donationId);
-        int sz = (size==null)? content.size(): Math.max(size,1);
-        int pg = (page==null)? 0 : Math.max(page,0);
-        int totalPages = (page==null||size==null)? 1 : (int)Math.ceil(total/(double)sz);
-        int offset = (page==null||size==null)? 0 : pg*sz;
-        var meta = new PageMeta(pg, sz, offset, (sort==null?"created":sort), (order==null?"asc":order), total, totalPages);
+        int p = (page == null) ? 0 : Math.max(page, 0);
+        int s = (size == null) ? content.size() : Math.max(size, 1);
+        int totalPages = (page == null || size == null) ? 1 : (int) Math.ceil(total / (double) s);
+        int offset = (page == null || size == null) ? 0 : p * s;
+
+        String sortProp = (sort == null) ? "created_at" : sort;
+        String sortDir = (order == null) ? "desc" : order;
+
+        var meta = new PageMeta(p, s, offset, sortProp, sortDir, total, totalPages);
         return ResponseEntity.ok(new PageResponse<>(meta, content));
     }
 
@@ -54,5 +62,6 @@ public class AlertController {
         return ResponseEntity.ok(new CountResponse(updated));
     }
 
-    public record CountResponse(int updated) {}
+    public record CountResponse(int updated) {
+    }
 }
