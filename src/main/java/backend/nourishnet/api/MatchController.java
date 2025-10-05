@@ -1,7 +1,6 @@
 package backend.nourishnet.api;
 
 import backend.nourishnet.domain.DonationMatch;
-import backend.nourishnet.domain.UserAccount;
 import backend.nourishnet.service.MatchService;
 import backend.nourishnet.service.UserAccountService;
 import backend.nourishnet.support.PageMeta;
@@ -15,7 +14,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -59,9 +57,6 @@ public class MatchController {
         return ResponseEntity.noContent().build();
     }
 
-    public record IdResponse(Long id) {
-    }
-
     public record AcceptReq(@NotNull OffsetDateTime pickupAt) {
     }
 
@@ -76,24 +71,6 @@ public class MatchController {
         var ngo = userService.findByFirebaseUidOrThrow(auth.getName());
         var content = service.pageByNgo(ngo.getUserId(), page, size, sort, order);
         long total = (page==null||size==null) ? content.size() : service.countByNgo(ngo.getUserId());
-        int sz = (size==null)? content.size(): Math.max(size,1);
-        int pg = (page==null)? 0 : Math.max(page,0);
-        int totalPages = (page==null||size==null)? 1 : (int)Math.ceil(total/(double)sz);
-        int offset = (page==null||size==null)? 0 : pg*sz;
-        var meta = new PageMeta(pg, sz, offset, (sort==null?"created":sort), (order==null?"asc":order), total, totalPages);
-        return ResponseEntity.ok(new PageResponse<>(meta, content));
-    }
-
-    @GetMapping("/donations/{id}/matches")
-    @PreAuthorize("hasAnyRole('DONATOR','ADMIN')")
-    public ResponseEntity<PageResponse<DonationMatch>> listByDonation(
-            @PathVariable("id") Long donationId,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String order) {
-        var content = service.pageByDonation(donationId, page, size, sort, order);
-        long total = (page==null||size==null) ? content.size() : service.countByDonation(donationId);
         int sz = (size==null)? content.size(): Math.max(size,1);
         int pg = (page==null)? 0 : Math.max(page,0);
         int totalPages = (page==null||size==null)? 1 : (int)Math.ceil(total/(double)sz);

@@ -9,6 +9,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -23,25 +25,10 @@ public class MatchService {
     private final MatchRepository matchJdbc;
     private static final Logger log = LoggerFactory.getLogger(MatchService.class);
 
-    @Transactional
-    public Long requestMatch(Long donationId, Long ngoUserId) {
-        log.info("match.request donation={} ngo={}", donationId, ngoUserId);
-        Donation d = donationRepo.findById(donationId)
-                .orElseThrow(() -> new IllegalArgumentException("Donation not found"));
-        if (!"OPEN".equalsIgnoreCase(d.getStatus())) {
-            log.warn("match.request.blocked donation={} status={}", donationId, d.getStatus());
-            throw new IllegalArgumentException("Donation not open");
-        }
-        DonationMatch m = new DonationMatch();
-        m.setDonationId(donationId);
-        m.setNgoUserId(ngoUserId);
-        m.setStatus("REQUESTED");
-        Long id = matchRepo.save(m).getMatchId();
-        log.info("match.request.created id={} donation={} ngo={}", id, donationId, ngoUserId);
-        return id;
-    }
 
     @Transactional
+    @CacheEvict(value = { "matches_by_ngo", "matches_count_ngo", "matches_by_donation", "matches_count_donation",
+            "feed_open", "feed_count" }, allEntries = true)
     public void accept(Long matchId, java.time.OffsetDateTime pickup) {
         log.info("match.accept id={}", matchId);
         DonationMatch m = matchRepo.findById(matchId)
@@ -66,6 +53,8 @@ public class MatchService {
     }
 
     @Transactional
+    @CacheEvict(value = { "matches_by_ngo", "matches_count_ngo", "matches_by_donation", "matches_count_donation",
+            "feed_open", "feed_count" }, allEntries = true)
     public void reject(Long matchId) {
         log.info("match.reject id={}", matchId);
         DonationMatch m = matchRepo.findById(matchId)
@@ -75,6 +64,8 @@ public class MatchService {
     }
 
     @Transactional
+    @CacheEvict(value = { "matches_by_ngo", "matches_count_ngo", "matches_by_donation", "matches_count_donation",
+            "feed_open", "feed_count" }, allEntries = true)
     public void cancel(Long matchId) {
         log.info("match.cancel id={}", matchId);
         DonationMatch m = matchRepo.findById(matchId)
@@ -83,17 +74,8 @@ public class MatchService {
         matchRepo.save(m);
     }
 
-    public List<DonationMatch> listByNgo(Long ngoUserId) {
-        log.debug("match.list.ngo ngo={}", ngoUserId);
-        return matchRepo.findByNgoUserIdOrderByCreatedAtDesc(ngoUserId);
-    }
-
-    public List<DonationMatch> listByDonation(Long donationId) {
-        log.debug("match.list.donation donation={}", donationId);
-        return matchRepo.findByDonationIdOrderByCreatedAtDesc(donationId);
-    }
-
     @Transactional
+    @CacheEvict(value = { "feed_open", "feed_count" }, allEntries = true)
     public void deliver(Long donationId) {
         log.info("donation.deliver id={}", donationId);
         Donation d = donationRepo.findById(donationId)
@@ -103,6 +85,8 @@ public class MatchService {
         log.info("donation.deliver.success id={}", donationId);
     }
 
+    @Cacheable(value = "matches_by_ngo",
+            key = "T(java.util.Objects).hash(#ngoUserId,#page,#size,#sort,#order)")
     public List<DonationMatch> pageByNgo(Long ngoUserId, Integer page, Integer size, String sort, String order) {
         var sortObj = MatchRepository.orderBy(sort, order);
         if (page == null || size == null) {
@@ -114,10 +98,14 @@ public class MatchService {
         return matchJdbc.findByNgo(ngoUserId, PageRequest.of(p, s, sortObj)).getContent();
     }
 
+    @Cacheable(value = "matches_count_ngo", key = "#ngoUserId")
     public long countByNgo(Long ngoUserId) {
         return matchJdbc.countByNgo(ngoUserId);
     }
 
+
+    @Cacheable(value = "matches_by_donation",
+            key = "T(java.util.Objects).hash(#donationId,#page,#size,#sort,#order)")
     public List<DonationMatch> pageByDonation(Long donationId, Integer page, Integer size, String sort, String order) {
         var sortObj = MatchRepository.orderBy(sort, order);
         if (page == null || size == null) {
