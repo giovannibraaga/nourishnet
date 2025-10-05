@@ -1,9 +1,7 @@
 package backend.nourishnet.api;
 
-import backend.nourishnet.domain.Role;
-import backend.nourishnet.domain.UserAccount;
 import backend.nourishnet.service.AuthService;
-import backend.nourishnet.api.MeController.MeResponse; // reaproveita o DTO que você já usa
+import backend.nourishnet.service.AuthService.LoginResult;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -20,24 +18,37 @@ public class AuthController {
         this.auth = auth;
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
+        LoginResult r = auth.login(req.email(), req.password());
+        return ResponseEntity.ok(new LoginResponse(r.user(), r.idToken(), r.refreshToken(), r.expiresIn()));
+    }
+
     @PostMapping("/signup")
-    public ResponseEntity<MeResponse> signup(@RequestBody SignupRequest req) {
-        UserAccount u = auth.signup(req.email(), req.password(), req.name(), req.role());
-        return ResponseEntity.ok(new MeResponse(
-                u.getUserId(),
-                u.getFirebaseUid(),
-                u.getEmail(),
-                u.getName(),
-                u.getBio(),
-                u.getRole().name(),
-                u.getStatus()
+    public ResponseEntity<MeController.MeResponse> signup(@RequestBody SignupRequest req) {
+        var u = auth.signup(req.email(), req.password(), req.name(), req.role());
+        return ResponseEntity.ok(new MeController.MeResponse(
+                u.getUserId(), u.getFirebaseUid(), u.getEmail(), u.getName(),
+                u.getBio(), u.getRole().name(), u.getStatus()
         ));
     }
+
+    public record LoginRequest(
+            @NotBlank @Email String email,
+            @NotBlank @Size(min = 6, max = 100) String password
+    ) {}
+
+    public record LoginResponse(
+            MeController.MeResponse user,
+            String idToken,
+            String refreshToken,
+            String expiresIn
+    ) {}
 
     public record SignupRequest(
             @NotBlank @Email String email,
             @NotBlank @Size(min = 6, max = 100) String password,
             @NotBlank @Size(max = 120) String name,
-            Role role // opcional (aceitamos só DONATOR/ONG; ADMIN será ignorado)
+            backend.nourishnet.domain.Role role
     ) {}
 }

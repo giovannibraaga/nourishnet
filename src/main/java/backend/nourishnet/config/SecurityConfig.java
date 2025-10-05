@@ -42,7 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/alerts").hasAnyRole("ADMIN", "DONATOR", "ONG")
                         .requestMatchers("/api/donations/*/events").hasAnyRole("ADMIN", "DONATOR", "ONG")
                         .requestMatchers("/api/matches/my").hasAnyRole("ADMIN", "ONG")
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/auth/signup").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/auth/**").permitAll()
 
                         .anyRequest().authenticated()
                 );
