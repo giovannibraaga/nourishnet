@@ -9,6 +9,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +24,9 @@ public class DonationService {
     private final DonationMatchRepository matchRepo;
     private static final Logger log = LoggerFactory.getLogger(DonationService.class);
 
+
     @Transactional
+    @CacheEvict(value = { "feed_open", "feed_count" }, allEntries = true)
     public Long createDonation(Long donorUserId, Donation donation, List<DonationItem> items) {
         log.info("donation.create.request donor={} items={}", donorUserId, (items != null ? items.size() : null));
         donation.setDonorUserId(donorUserId);
@@ -38,6 +42,8 @@ public class DonationService {
         return id;
     }
 
+    @Cacheable(value = "feed_open",
+            key = "T(java.util.Objects).hash(#page,#size,#sort,#asc)")
     public List<FeedRow> listOpenFeed(Integer page, Integer size, FeedSort sort, Boolean asc) {
         log.info("feed.list.request page={} size={} sort={} asc={}", page, size, sort, asc);
 
@@ -67,11 +73,13 @@ public class DonationService {
         return result;
     }
 
+    @Cacheable(value = "feed_count", key = "'open'")
     public long countOpen() {
         return feedRepo.countOpen();
     }
 
     @Transactional
+    @CacheEvict(value = { "feed_open", "feed_count" }, allEntries = true)
     public void updateDonation(Long donationId, Long requesterUserId, Donation newData, List<DonationItem> newItems, boolean isAdmin) {
         log.info("donation.update.request id={} requester={} admin={}", donationId, requesterUserId, isAdmin);
         Donation d = isAdmin

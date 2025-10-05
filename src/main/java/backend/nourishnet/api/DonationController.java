@@ -2,8 +2,10 @@ package backend.nourishnet.api;
 
 import backend.nourishnet.domain.Donation;
 import backend.nourishnet.domain.DonationItem;
+import backend.nourishnet.domain.DonationMatch;
 import backend.nourishnet.dto.CreateDonationRequest;
 import backend.nourishnet.dto.CreateDonationResponse;
+import backend.nourishnet.service.MatchService;
 import backend.nourishnet.support.FeedRow;
 import backend.nourishnet.support.FeedSort;
 import backend.nourishnet.service.DonationService;
@@ -25,11 +27,13 @@ import org.slf4j.Logger;
 @RequestMapping("/api/donations")
 public class DonationController {
     private final DonationService service;
+    private final MatchService matchService;
     private final UserAccountService userService;
     private static final Logger log = LoggerFactory.getLogger(DonationController.class);
 
-    public DonationController(DonationService service, UserAccountService userService) {
+    public DonationController(DonationService service, MatchService matchService, UserAccountService userService) {
         this.service = service;
+        this.matchService = matchService;
         this.userService = userService;
     }
 
@@ -121,6 +125,24 @@ public class DonationController {
 
         service.updateDonation(donationId, requester.getUserId(), d, items, isAdmin);
         return org.springframework.http.ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/donations/{id}/matches")
+    @PreAuthorize("hasAnyRole('DONATOR','ADMIN')")
+    public ResponseEntity<PageResponse<DonationMatch>> listByDonation(
+            @PathVariable("id") Long donationId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String order) {
+        var content = matchService.pageByDonation(donationId, page, size, sort, order);
+        long total = (page==null||size==null) ? content.size() : matchService.countByDonation(donationId);
+        int sz = (size==null)? content.size(): Math.max(size,1);
+        int pg = (page==null)? 0 : Math.max(page,0);
+        int totalPages = (page==null||size==null)? 1 : (int)Math.ceil(total/(double)sz);
+        int offset = (page==null||size==null)? 0 : pg*sz;
+        var meta = new PageMeta(pg, sz, offset, (sort==null?"created":sort), (order==null?"asc":order), total, totalPages);
+        return ResponseEntity.ok(new PageResponse<>(meta, content));
     }
 }
 
