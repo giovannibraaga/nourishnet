@@ -4,6 +4,8 @@ import backend.nourishnet.domain.DonationMatch;
 import backend.nourishnet.domain.UserAccount;
 import backend.nourishnet.service.MatchService;
 import backend.nourishnet.service.UserAccountService;
+import backend.nourishnet.support.PageMeta;
+import backend.nourishnet.support.PageResponse;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,15 +30,6 @@ public class MatchController {
         this.userService = userService;
     }
 
-    @PostMapping("/donations/{id}/matches")
-    @PreAuthorize("hasRole('ONG') or hasRole('ADMIN')")
-    public org.springframework.http.ResponseEntity<IdResponse> request(org.springframework.security.core.Authentication auth, @PathVariable("id") Long donationId) {
-        var ngo = userService.findByFirebaseUidOrThrow(auth.getName());
-        log.info("api.match.request donation={} uid={}", donationId, auth.getName());
-        Long id = service.requestMatch(donationId, ngo.getUserId());
-        return org.springframework.http.ResponseEntity.status(201).body(new IdResponse(id));
-    }
-
     @PostMapping("/matches/{id}:accept")
     @PreAuthorize("hasRole('DONATOR') or hasRole('ADMIN')")
     public org.springframework.http.ResponseEntity<Void> accept(@PathVariable("id") Long matchId, @jakarta.validation.Valid @RequestBody AcceptReq req) {
@@ -59,13 +52,6 @@ public class MatchController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/matches/my")
-    @PreAuthorize("hasRole('ONG') or hasRole('ADMIN')")
-    public ResponseEntity<List<DonationMatch>> my(Authentication auth) {
-        UserAccount ngo = userService.findByFirebaseUidOrThrow(auth.getName());
-        return ResponseEntity.ok(service.listByNgo(ngo.getUserId()));
-    }
-
     @PostMapping("/donations/{id}:deliver")
     @PreAuthorize("hasRole('DONATOR') or hasRole('ADMIN')")
     public ResponseEntity<Void> deliver(@PathVariable("id") Long donationId) {
@@ -77,5 +63,42 @@ public class MatchController {
     }
 
     public record AcceptReq(@NotNull OffsetDateTime pickupAt) {
+    }
+
+    @GetMapping("/matches/my")
+    @PreAuthorize("hasRole('ONG') or hasRole('ADMIN')")
+    public ResponseEntity<PageResponse<backend.nourishnet.domain.DonationMatch>> myPaged(
+            Authentication auth,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String order) {
+        var ngo = userService.findByFirebaseUidOrThrow(auth.getName());
+        var content = service.pageByNgo(ngo.getUserId(), page, size, sort, order);
+        long total = (page==null||size==null) ? content.size() : service.countByNgo(ngo.getUserId());
+        int sz = (size==null)? content.size(): Math.max(size,1);
+        int pg = (page==null)? 0 : Math.max(page,0);
+        int totalPages = (page==null||size==null)? 1 : (int)Math.ceil(total/(double)sz);
+        int offset = (page==null||size==null)? 0 : pg*sz;
+        var meta = new PageMeta(pg, sz, offset, (sort==null?"created":sort), (order==null?"asc":order), total, totalPages);
+        return ResponseEntity.ok(new PageResponse<>(meta, content));
+    }
+
+    @GetMapping("/donations/{id}/matches")
+    @PreAuthorize("hasAnyRole('DONATOR','ADMIN')")
+    public ResponseEntity<PageResponse<DonationMatch>> listByDonation(
+            @PathVariable("id") Long donationId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String order) {
+        var content = service.pageByDonation(donationId, page, size, sort, order);
+        long total = (page==null||size==null) ? content.size() : service.countByDonation(donationId);
+        int sz = (size==null)? content.size(): Math.max(size,1);
+        int pg = (page==null)? 0 : Math.max(page,0);
+        int totalPages = (page==null||size==null)? 1 : (int)Math.ceil(total/(double)sz);
+        int offset = (page==null||size==null)? 0 : pg*sz;
+        var meta = new PageMeta(pg, sz, offset, (sort==null?"created":sort), (order==null?"asc":order), total, totalPages);
+        return ResponseEntity.ok(new PageResponse<>(meta, content));
     }
 }
