@@ -3,17 +3,22 @@ package backend.nourishnet.service;
 import backend.nourishnet.domain.Donation;
 import backend.nourishnet.domain.DonationItem;
 import backend.nourishnet.repository.*;
+import backend.nourishnet.support.FeedRow;
+import backend.nourishnet.support.FeedSort;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 
-@Service @RequiredArgsConstructor
+@Service
+@RequiredArgsConstructor
 public class DonationService {
     private final DonationRepository donationRepo;
-    private final FeedJdbcRepository feedRepo;
+    private final FeedRepository feedRepo;
     private final DonationMatchRepository matchRepo;
     private static final Logger log = LoggerFactory.getLogger(DonationService.class);
 
@@ -35,22 +40,36 @@ public class DonationService {
 
     public List<FeedRow> listOpenFeed(Integer page, Integer size, FeedSort sort, Boolean asc) {
         log.info("feed.list.request page={} size={} sort={} asc={}", page, size, sort, asc);
-        if (page == null || size == null) {
-            log.debug("feed.list.nopagination");
-            List<FeedRow> result = feedRepo.findOpen(null, null, sort, asc);
-            log.info("feed.list.success count={}", result.size());
-            return result;
-        }
-        int p = Math.max(page, 0);
-        int s = Math.max(size, 1);
-        int offset = p * s;
-        log.debug("feed.list.pagination page={} size={} offset={}", p, s, offset);
-        List<FeedRow> result = feedRepo.findOpen(offset, s, sort, asc);
+
+        var sortObj = FeedRepository.orderByFor(sort, asc);
+        var pageable = (page == null || size == null)
+                ? PageRequest.of(0, Integer.MAX_VALUE, sortObj)
+                : PageRequest.of(Math.max(page, 0), Math.max(size, 1), sortObj);
+
+        var pg = feedRepo.findOpenAsProjection(pageable);
+
+        var result = pg.getContent().stream()
+                .map(pj -> new FeedRow(
+                        pj.getDonationId(),
+                        pj.getStatus(),
+                        pj.getAddressText(),
+                        pj.getGeoLat(),
+                        pj.getGeoLng(),
+                        pj.getExpiresAt(),
+                        pj.getItemsCount(),
+                        pj.getTotalQtyKg(),
+                        pj.getEarliestBestBefore(),
+                        pj.getLastUpdateAt()
+                ))
+                .toList();
+
         log.info("feed.list.success count={}", result.size());
         return result;
     }
 
-    public long countOpen() { return feedRepo.countOpen(); }
+    public long countOpen() {
+        return feedRepo.countOpen();
+    }
 
     @Transactional
     public void updateDonation(Long donationId, Long requesterUserId, Donation newData, List<DonationItem> newItems, boolean isAdmin) {
