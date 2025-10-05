@@ -33,3 +33,4 @@ build/
 .vscode/
 
 src/resources/application.properties
+src/resources/nourishnetfiapproject-firebase-adminsdk-fbsvc-91e2e151b9.json
