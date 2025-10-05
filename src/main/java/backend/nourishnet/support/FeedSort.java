@@ -1,4 +1,4 @@
-package backend.nourishnet.repository;
+package backend.nourishnet.support;
 
 public enum FeedSort {
     URGENCY, UPDATED, EXPIRES;
