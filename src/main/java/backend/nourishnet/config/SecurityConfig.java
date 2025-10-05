@@ -1,5 +1,8 @@
-package backend.nourishnet.security;
+package backend.nourishnet.config;
 
+import backend.nourishnet.security.FirebaseJwtAuthConverter;
+import backend.nourishnet.security.RestAccessDeniedHandler;
+import backend.nourishnet.security.RestAuthEntryPoint;
 import backend.nourishnet.service.UserAccountService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,21 +19,32 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                            Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthConverter) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthConverter
+    ) throws Exception {
 
-        http.csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/error",
-                                "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .anyRequest().authenticated()
-                )
+        http
+                .csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new RestAuthEntryPoint())
                         .accessDeniedHandler(new RestAccessDeniedHandler())
                 )
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter))
+                )
+                .sessionManagement(sm -> sm.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(reg -> reg
+                        .requestMatchers("/actuator/health", "/error",
+                                "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+                        .requestMatchers("/api/feed/open").hasAnyRole("ADMIN", "DONATOR", "ONG")
+                        .requestMatchers("/api/alerts").hasAnyRole("ADMIN", "DONATOR", "ONG")
+                        .requestMatchers("/api/donations/*/events").hasAnyRole("ADMIN", "DONATOR", "ONG")
+                        .requestMatchers("/api/matches/my").hasAnyRole("ADMIN", "ONG")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/auth/signup").permitAll()
+
+                        .anyRequest().authenticated()
                 );
 
         return http.build();
