@@ -35,16 +35,21 @@ public class SecurityConfig {
                 )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(reg -> reg
-                        .requestMatchers("/actuator/health", "/error",
-                                "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/error",
+                                "/swagger-ui.html", "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
+                        .requestMatchers("/api/auth/**").permitAll()
+
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
 
                         .requestMatchers("/api/feed/open").hasAnyRole("ADMIN", "DONATOR", "ONG")
                         .requestMatchers("/api/alerts").hasAnyRole("ADMIN", "DONATOR", "ONG")
                         .requestMatchers("/api/donations/*/events").hasAnyRole("ADMIN", "DONATOR", "ONG")
                         .requestMatchers("/api/matches/my").hasAnyRole("ADMIN", "ONG")
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/auth/**").permitAll()
-
-                        .anyRequest().authenticated()
                 );
 
         return http.build();
